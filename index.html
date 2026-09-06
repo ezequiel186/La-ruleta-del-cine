@@ -46,6 +46,41 @@
       <div class="bulb-row bottom" id="bulbRowBottom"></div>
     </div>
 
+    <!-- ================= RULETA PREVIA: ¿Película o serie? ================= -->
+    <section id="decideSection" class="decide-wheel">
+      <p class="decide-label"><span class="dot"></span>¿Peli o serie? Dejá que decida la ruleta</p>
+
+      <div class="mini-wheel-wrap" id="decideWheelWrap">
+        <div class="wheel-rim mini">
+          <canvas id="decideCanvas" class="wheel-canvas" width="320" height="320" role="img" aria-label="Ruleta película o serie"></canvas>
+          <div class="hub mini" aria-hidden="true"></div>
+        </div>
+        <div class="pointer mini" id="decidePointerFlag" aria-hidden="true">
+          <svg viewBox="0 0 26 34">
+            <path d="M13 0 L26 8 L26 34 L0 34 L0 8 Z" fill="#a52a24" stroke="#d9d2b8" stroke-width="1.5"/>
+            <circle cx="13" cy="10" r="2" fill="#050403"/>
+          </svg>
+        </div>
+      </div>
+
+      <button id="decideSpinBtn" class="spin-btn small">Girar</button>
+
+      <div id="decideResultCard" class="ticket hidden" aria-live="polite">
+        <div class="ticket-main">
+          <p class="ticket-eyebrow">Salió...</p>
+          <p class="ticket-title" id="decideResultTitle"></p>
+        </div>
+        <div class="ticket-stub">ADMIT ONE</div>
+      </div>
+
+      <div class="actions" id="decideActions" style="display:none;">
+        <button id="decideGoBtn" class="ghost-btn">Ir a elegir género</button>
+        <button id="decideAgainBtn" class="ghost-btn">Girar de nuevo</button>
+      </div>
+
+      <p id="decideLiveRegion" class="sr-only" aria-live="assertive"></p>
+    </section>
+
     <div class="tabs" role="tablist">
       <button class="tab-btn active" id="tabWheel" role="tab" aria-selected="true">La ruleta</button>
       <button class="tab-btn" id="tabBoard" role="tab" aria-selected="false">Mi tablero</button>

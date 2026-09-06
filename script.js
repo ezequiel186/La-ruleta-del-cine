@@ -16,10 +16,10 @@ const TMDB_API_KEY = "7547c59723c1cded417d49535eb067cd";
 const OMDB_API_KEY = "723fb58d";
 
 function hasValidTmdbKey(){
-  return typeof TMDB_API_KEY === "string" && TMDB_API_KEY.trim().length > 0 && TMDB_API_KEY !== "PEGA_TU_API_KEY_ACA";
+  return typeof TMDB_API_KEY === "string" && TMDB_API_KEY.trim().length > 0 && TMDB_API_KEY !== "7547c59723c1cded417d49535eb067cd";
 }
 function hasValidOmdbKey(){
-  return typeof OMDB_API_KEY === "string" && OMDB_API_KEY.trim().length > 0 && OMDB_API_KEY !== "PEGA_TU_API_KEY_DE_OMDB_ACA";
+  return typeof OMDB_API_KEY === "string" && OMDB_API_KEY.trim().length > 0 && OMDB_API_KEY !== "723fb58d";
 }
 
 // Reintenta la solicitud si la API responde 429 (demasiadas solicitudes),
@@ -1556,3 +1556,170 @@ function showSeriesSubTab(which){
 }
 sTabWheel.addEventListener("click", () => showSeriesSubTab("wheel"));
 sTabBoard.addEventListener("click", () => showSeriesSubTab("board"));
+
+// ---------------------------------------------------------------
+// ruleta previa: ¿Película o serie? — decide primero qué tipo de
+// contenido mirar, y después te manda a la sección correspondiente
+// para elegir género. Es una ruleta chica e independiente, con solo
+// dos casilleros, sin catálogo ni tablero propio.
+// ---------------------------------------------------------------
+(function initDecideWheel(){
+  const canvas = document.getElementById("decideCanvas");
+  if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const spinBtn = document.getElementById("decideSpinBtn");
+  const resultCard = document.getElementById("decideResultCard");
+  const resultTitle = document.getElementById("decideResultTitle");
+  const actions = document.getElementById("decideActions");
+  const goBtn = document.getElementById("decideGoBtn");
+  const againBtn = document.getElementById("decideAgainBtn");
+  const pointerFlag = document.getElementById("decidePointerFlag");
+  const liveRegion = document.getElementById("decideLiveRegion");
+
+  const OPTIONS = [
+    { label: "Película", color: "#5c1815" },
+    { label: "Serie", color: "#1c3a3d" }
+  ];
+
+  let rotation = 0;
+  let spinning = false;
+  let lastWinner = null;
+
+  function drawDecideWheel(){
+    const n = OPTIONS.length;
+    const w = canvas.width, h = canvas.height;
+    const cx = w/2, cy = h/2;
+    const radius = w/2;
+    const segAngle = (Math.PI*2)/n;
+
+    ctx.clearRect(0,0,w,h);
+
+    const fontSize = 30;
+
+    for(let i=0;i<n;i++){
+      const start = i*segAngle;
+      const end = start+segAngle;
+
+      ctx.beginPath();
+      ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,radius,start,end);
+      ctx.closePath();
+      ctx.fillStyle = shadeFor(OPTIONS[i].color, i);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(5,4,3,0.75)";
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      const mid = start + segAngle/2;
+      ctx.save();
+      ctx.translate(cx,cy);
+      ctx.rotate(mid);
+
+      const flip = mid > Math.PI/2 && mid < Math.PI*1.5;
+      ctx.textBaseline = "middle";
+      ctx.font = `400 ${fontSize}px "Anton", sans-serif`;
+      ctx.lineJoin = "round";
+
+      const label = OPTIONS[i].label;
+      const textRadius = radius*0.6;
+
+      if(flip){
+        ctx.textAlign = "left";
+        ctx.rotate(Math.PI);
+        ctx.strokeStyle = "rgba(5,4,3,0.9)";
+        ctx.lineWidth = fontSize * 0.14;
+        ctx.strokeText(label, -textRadius, 0);
+        ctx.fillStyle = "#d9d2b8";
+        ctx.fillText(label, -textRadius, 0);
+      } else {
+        ctx.textAlign = "right";
+        ctx.strokeStyle = "rgba(5,4,3,0.9)";
+        ctx.lineWidth = fontSize * 0.14;
+        ctx.strokeText(label, textRadius, 0);
+        ctx.fillStyle = "#d9d2b8";
+        ctx.fillText(label, textRadius, 0);
+      }
+      ctx.restore();
+    }
+
+    ctx.beginPath();
+    ctx.arc(cx,cy, radius*0.18, 0, Math.PI*2);
+    ctx.strokeStyle = "rgba(5,4,3,0.65)";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+
+  function normalizeDeg(d){ return ((d % 360) + 360) % 360; }
+
+  function spinDecide(){
+    if(spinning) return;
+    spinning = true;
+    spinBtn.disabled = true;
+    resultCard.classList.add("hidden");
+    actions.style.display = "none";
+
+    const n = OPTIONS.length;
+    const segAngleDeg = 360/n;
+    const winnerIndex = Math.floor(Math.random()*n);
+    const thetaCenter = winnerIndex*segAngleDeg + segAngleDeg/2;
+    const pointerAngle = 270;
+
+    const baseTarget = normalizeDeg(pointerAngle - thetaCenter);
+    const currentMod = normalizeDeg(rotation);
+    const extraSpins = 5 + Math.floor(Math.random()*3);
+    const forward = normalizeDeg(baseTarget - currentMod);
+
+    const newRotation = rotation + forward + extraSpins*360;
+
+    const onDone = () => {
+      spinning = false;
+      spinBtn.disabled = false;
+      lastWinner = OPTIONS[winnerIndex].label;
+
+      pointerFlag.classList.remove("hit");
+      void pointerFlag.offsetWidth;
+      pointerFlag.classList.add("hit");
+
+      resultTitle.textContent = lastWinner;
+      resultCard.classList.remove("hidden");
+      actions.style.display = "flex";
+      liveRegion.textContent = "Salió: " + lastWinner;
+    };
+
+    if(reduceMotion){
+      canvas.classList.add("no-transition");
+      rotation = newRotation;
+      canvas.style.transform = `rotate(${rotation}deg)`;
+      requestAnimationFrame(onDone);
+      return;
+    }
+
+    canvas.classList.remove("no-transition");
+    const duration = 3400 + Math.random()*700;
+    canvas.style.transition = `transform ${duration}ms cubic-bezier(.15,.63,.2,1)`;
+
+    rotation = newRotation;
+    canvas.style.transform = `rotate(${rotation}deg)`;
+
+    const onEnd = () => {
+      canvas.removeEventListener("transitionend", onEnd);
+      onDone();
+    };
+    canvas.addEventListener("transitionend", onEnd);
+  }
+
+  spinBtn.addEventListener("click", spinDecide);
+  againBtn.addEventListener("click", spinDecide);
+
+  goBtn.addEventListener("click", () => {
+    if(lastWinner === "Serie"){
+      showTopTab("series");
+      document.getElementById("seriesView").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    } else {
+      showTopTab("wheel");
+      document.getElementById("wheelView").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    }
+  });
+
+  drawDecideWheel();
+})();

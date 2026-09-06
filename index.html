@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La ruleta del cine</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@1,500;1,600&family=Special+Elite&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="grain" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <div class="curtain left" aria-hidden="true"></div>
+  <div class="curtain right" aria-hidden="true"></div>
+
+  <div class="sprockets" aria-hidden="true"></div>
+
+  <main>
+
+    <div class="marquee">
+      <div class="bulb-row" id="bulbRowTop"></div>
+
+      <div class="marquee-frame" aria-hidden="true">
+        <span class="corner tl"></span>
+        <span class="corner tr"></span>
+        <span class="corner bl"></span>
+        <span class="corner br"></span>
+      </div>
+
+      <p class="presents">Una producción de cabecera presenta</p>
+
+      <h1>La ruleta<br>del cine</h1>
+
+      <div class="bolt" aria-hidden="true">
+        <svg viewBox="0 0 60 90"><polyline points="38,2 8,50 28,50 20,88 54,36 32,36 38,2" /></svg>
+      </div>
+
+      <p class="tagline">Función continua</p>
+      <p class="tagline-sub">Girá el género, después la película (o la serie)</p>
+      <div class="bulb-row bottom" id="bulbRowBottom"></div>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab-btn active" id="tabWheel" role="tab" aria-selected="true">La ruleta</button>
+      <button class="tab-btn" id="tabBoard" role="tab" aria-selected="false">Mi tablero</button>
+      <button class="tab-btn" id="tabSeries" role="tab" aria-selected="false">Series</button>
+    </div>
+
+    <!-- ================= PELÍCULAS: ruleta ================= -->
+    <section id="wheelView">
+
+    <div id="stageLabel"><span class="dot"></span><span id="stageLabelText">Función 1 · Elegí un género</span></div>
+
+    <div class="wheel-wrap" id="wheelWrap">
+      <div class="wheel-rim">
+        <canvas id="wheelCanvas" class="wheel-canvas" width="640" height="640" role="img" aria-label="Ruleta"></canvas>
+        <div class="hub" aria-hidden="true"></div>
+      </div>
+      <div class="pointer" id="pointerFlag" aria-hidden="true">
+        <svg viewBox="0 0 26 34">
+          <path d="M13 0 L26 8 L26 34 L0 34 L0 8 Z" fill="#a52a24" stroke="#d9d2b8" stroke-width="1.5"/>
+          <circle cx="13" cy="10" r="2" fill="#050403"/>
+        </svg>
+      </div>
+    </div>
+
+    <button id="spinBtn" class="spin-btn">Girar género</button>
+
+    <div id="resultCard" class="ticket hidden" aria-live="polite">
+      <div class="ticket-main">
+        <p class="ticket-eyebrow" id="ticketEyebrow"></p>
+        <p class="ticket-title" id="ticketTitle"></p>
+        <p class="ticket-rating" id="ticketRating"></p>
+        <p class="ticket-code" id="ticketCode"></p>
+      </div>
+      <div class="ticket-stub">ADMIT ONE</div>
+    </div>
+
+    <div class="actions">
+      <button id="nextBtn" class="ghost-btn" style="display:none;"></button>
+      <button id="backBtn" class="ghost-btn" style="display:none;">Elegir otro género</button>
+    </div>
+
+    <p id="liveRegion" class="sr-only" aria-live="assertive"></p>
+
+    </section>
+
+    <!-- ================= PELÍCULAS: tablero ================= -->
+    <section id="boardView" hidden>
+      <div class="board-header">
+        <p class="board-count" id="boardCount">0 / 0 vistas</p>
+        <div class="board-header-controls">
+          <label class="sort-label" for="sortSelect">Ordenar
+            <select id="sortSelect" class="sort-select">
+              <option value="default">Catálogo</option>
+              <option value="alpha-asc">Título A → Z</option>
+              <option value="alpha-desc">Título Z → A</option>
+              <option value="rating-desc">Valoración ★ mayor a menor</option>
+              <option value="rating-asc">Valoración ★ menor a mayor</option>
+              <option value="year-desc">Año de estreno: más nueva primero</option>
+              <option value="year-asc">Año de estreno: más antigua primero</option>
+              <option value="unwatched-first">No vistas primero</option>
+              <option value="watched-first">Vistas primero</option>
+            </select>
+          </label>
+          <button type="button" class="ghost-btn small" id="selectModeBtn">Seleccionar varias</button>
+          <button class="ghost-btn small" id="resetBoardBtn">Reiniciar tablero</button>
+        </div>
+      </div>
+
+      <div class="selection-bar hidden" id="selectionBar">
+        <span class="selection-count" id="selectionCount">0 seleccionadas</span>
+        <button type="button" class="ghost-btn small danger" id="bulkDeleteBtn" disabled>Eliminar seleccionadas</button>
+        <button type="button" class="ghost-btn small" id="cancelSelectBtn">Cancelar</button>
+      </div>
+
+      <div class="add-movie">
+        <p class="add-movie-label">Agregá una o más películas al catálogo</p>
+        <div class="add-movie-row">
+          <textarea id="addMovieTitle" class="add-movie-input" rows="1" placeholder="Título de la película (una por línea, o separadas por coma)" maxlength="2000" autocomplete="off"></textarea>
+          <select id="addMovieGenre" class="add-movie-select" aria-label="Género"></select>
+          <button type="button" id="addMovieBtn" class="add-movie-btn">Agregar</button>
+        </div>
+        <p class="detect-hint" id="detectHint"></p>
+      </div>
+
+      <p class="tmdb-attribution">Pósters vía <a href="https://www.themoviedb.org/" target="_blank" rel="noopener">TMDb</a>. Calificaciones vía <a href="https://www.omdbapi.com/" target="_blank" rel="noopener">OMDb API</a>. Este producto usa las APIs de TMDb y OMDb pero no está certificado ni respaldado por ninguna de las dos.</p>
+      <div id="boardGrid"></div>
+    </section>
+
+    <!-- ================= SERIES (universo aparte) ================= -->
+    <section id="seriesView" hidden>
+
+      <div class="tabs sub-tabs" role="tablist">
+        <button class="tab-btn active" id="sTabWheel" role="tab" aria-selected="true">Ruleta de series</button>
+        <button class="tab-btn" id="sTabBoard" role="tab" aria-selected="false">Tablero de series</button>
+      </div>
+
+      <section id="sWheelView">
+
+        <div id="sStageLabel"><span class="dot"></span><span id="sStageLabelText">Función 2 · Elegí un género</span></div>
+
+        <div class="wheel-wrap" id="sWheelWrap">
+          <div class="wheel-rim">
+            <canvas id="sWheelCanvas" class="wheel-canvas" width="640" height="640" role="img" aria-label="Ruleta de series"></canvas>
+            <div class="hub" aria-hidden="true"></div>
+          </div>
+          <div class="pointer" id="sPointerFlag" aria-hidden="true">
+            <svg viewBox="0 0 26 34">
+              <path d="M13 0 L26 8 L26 34 L0 34 L0 8 Z" fill="#a52a24" stroke="#d9d2b8" stroke-width="1.5"/>
+              <circle cx="13" cy="10" r="2" fill="#050403"/>
+            </svg>
+          </div>
+        </div>
+
+        <button id="sSpinBtn" class="spin-btn">Girar género</button>
+
+        <div id="sResultCard" class="ticket hidden" aria-live="polite">
+          <div class="ticket-main">
+            <p class="ticket-eyebrow" id="sTicketEyebrow"></p>
+            <p class="ticket-title" id="sTicketTitle"></p>
+            <p class="ticket-rating" id="sTicketRating"></p>
+            <p class="ticket-code" id="sTicketCode"></p>
+          </div>
+          <div class="ticket-stub">ADMIT ONE</div>
+        </div>
+
+        <div class="actions">
+          <button id="sNextBtn" class="ghost-btn" style="display:none;"></button>
+          <button id="sBackBtn" class="ghost-btn" style="display:none;">Elegir otro género</button>
+        </div>
+
+        <p id="sLiveRegion" class="sr-only" aria-live="assertive"></p>
+
+      </section>
+
+      <section id="sBoardView" hidden>
+        <div class="board-header">
+          <p class="board-count" id="sBoardCount">0 / 0 vistas</p>
+          <div class="board-header-controls">
+            <label class="sort-label" for="sSortSelect">Ordenar
+              <select id="sSortSelect" class="sort-select">
+                <option value="default">Catálogo</option>
+                <option value="alpha-asc">Título A → Z</option>
+                <option value="alpha-desc">Título Z → A</option>
+                <option value="rating-desc">Valoración ★ mayor a menor</option>
+                <option value="rating-asc">Valoración ★ menor a mayor</option>
+                <option value="year-desc">Año de estreno: más nueva primero</option>
+                <option value="year-asc">Año de estreno: más antigua primero</option>
+                <option value="unwatched-first">No vistas primero</option>
+                <option value="watched-first">Vistas primero</option>
+              </select>
+            </label>
+            <button type="button" class="ghost-btn small" id="sSelectModeBtn">Seleccionar varias</button>
+            <button class="ghost-btn small" id="sResetBoardBtn">Reiniciar tablero</button>
+          </div>
+        </div>
+
+        <div class="selection-bar hidden" id="sSelectionBar">
+          <span class="selection-count" id="sSelectionCount">0 seleccionadas</span>
+          <button type="button" class="ghost-btn small danger" id="sBulkDeleteBtn" disabled>Eliminar seleccionadas</button>
+          <button type="button" class="ghost-btn small" id="sCancelSelectBtn">Cancelar</button>
+        </div>
+
+        <div class="add-movie">
+          <p class="add-movie-label">Agregá una o más series al catálogo</p>
+          <div class="add-movie-row">
+            <textarea id="sAddTitle" class="add-movie-input" rows="1" placeholder="Título de la serie (una por línea, o separadas por coma)" maxlength="2000" autocomplete="off"></textarea>
+            <select id="sAddGenre" class="add-movie-select" aria-label="Género"></select>
+            <button type="button" id="sAddBtn" class="add-movie-btn">Agregar</button>
+          </div>
+          <p class="detect-hint" id="sDetectHint"></p>
+        </div>
+
+        <p class="tmdb-attribution">Pósters vía <a href="https://www.themoviedb.org/" target="_blank" rel="noopener">TMDb</a>. Calificaciones vía <a href="https://www.omdbapi.com/" target="_blank" rel="noopener">OMDb API</a>. Este producto usa las APIs de TMDb y OMDb pero no está certificado ni respaldado por ninguna de las dos.</p>
+        <div id="sBoardGrid"></div>
+      </section>
+
+    </section>
+
+  </main>
+
+  <div class="sprockets" aria-hidden="true"></div>
+
+<script src="script.js"></script>
+</body>
+</html>

@@ -16,10 +16,10 @@ const TMDB_API_KEY = "7547c59723c1cded417d49535eb067cd";
 const OMDB_API_KEY = "723fb58d";
 
 function hasValidTmdbKey(){
-  return typeof TMDB_API_KEY === "string" && TMDB_API_KEY.trim().length > 0 && TMDB_API_KEY !== "7547c59723c1cded417d49535eb067cd";
+  return typeof TMDB_API_KEY === "string" && TMDB_API_KEY.trim().length > 0 && TMDB_API_KEY !== "PEGA_TU_API_KEY_ACA";
 }
 function hasValidOmdbKey(){
-  return typeof OMDB_API_KEY === "string" && OMDB_API_KEY.trim().length > 0 && OMDB_API_KEY !== "723fb58d";
+  return typeof OMDB_API_KEY === "string" && OMDB_API_KEY.trim().length > 0 && OMDB_API_KEY !== "PEGA_TU_API_KEY_DE_OMDB_ACA";
 }
 
 // Reintenta la solicitud si la API responde 429 (demasiadas solicitudes),

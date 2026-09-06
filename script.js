@@ -928,8 +928,15 @@ function createRouletteApp(cfg){
         console.warn('[Ruleta] Sin póster para "' + title + '"', results);
       }
 
-      posterCache[title] = posterUrl;
-      saveObj(POSTER_CACHE_KEY, posterCache);
+      // Solo guardamos en caché de forma permanente si SÍ conseguimos el
+      // póster. Si vino vacío (falla momentánea, límite de la API, etc.)
+      // no lo dejamos "sellado" como vacío para siempre — así el próximo
+      // intento (por ejemplo, al reordenar el tablero) lo vuelve a pedir
+      // en vez de quedar con el cartel en blanco para siempre.
+      if(posterUrl){
+        posterCache[title] = posterUrl;
+        saveObj(POSTER_CACHE_KEY, posterCache);
+      }
       yearCache[title] = year;
       saveObj(YEAR_CACHE_KEY, yearCache);
 
@@ -1006,8 +1013,13 @@ function createRouletteApp(cfg){
 
       if(!rating) console.warn('[Ruleta] Sin calificación de IMDb para "' + title + '"');
 
-      ratingCache[title] = rating;
-      saveObj(RATING_CACHE_KEY, ratingCache);
+      // Igual que con el póster: solo guardamos permanentemente si vino
+      // una calificación real. Si vino vacía, no la "sellamos" — así se
+      // reintenta más adelante en vez de quedar sin estrella para siempre.
+      if(rating){
+        ratingCache[title] = rating;
+        saveObj(RATING_CACHE_KEY, ratingCache);
+      }
       return rating;
     }catch(e){
       return null;
@@ -1049,11 +1061,12 @@ function createRouletteApp(cfg){
     while(posterQueue.length > 0){
       const batch = posterQueue.splice(0, QUEUE_BATCH_SIZE);
       await Promise.all(batch.map(async ({ title, art, yearBadge }) => {
+        const wasCached = Object.prototype.hasOwnProperty.call(posterCache, title) && Object.prototype.hasOwnProperty.call(yearCache, title);
         const { posterUrl, year } = await fetchTitleMeta(title);
         if(posterUrl) applyPosterToCard(art, posterUrl);
         if(year){
-          anyYearResolved = true;
           if(yearBadge && yearBadge.isConnected) applyYearToBadge(yearBadge, year);
+          if(!wasCached) anyYearResolved = true;
         }
       }));
       if(posterQueue.length > 0) await new Promise((resolve) => setTimeout(resolve, QUEUE_DELAY_MS));
@@ -1077,10 +1090,14 @@ function createRouletteApp(cfg){
     while(ratingQueue.length > 0){
       const batch = ratingQueue.splice(0, QUEUE_BATCH_SIZE);
       await Promise.all(batch.map(async ({ title, badge }) => {
+        const wasCached = Object.prototype.hasOwnProperty.call(ratingCache, title);
         const rating = await fetchImdbRating(title);
-        anyResolved = true;
-        if(rating && badge.isConnected) applyRatingToBadge(badge, rating);
-        else if(!rating && badge.isConnected) badge.remove();
+        if(rating){
+          if(badge.isConnected) applyRatingToBadge(badge, rating);
+          if(!wasCached) anyResolved = true;
+        } else if(badge.isConnected){
+          badge.remove();
+        }
       }));
       if(ratingQueue.length > 0) await new Promise((resolve) => setTimeout(resolve, QUEUE_DELAY_MS));
     }
@@ -1362,7 +1379,10 @@ function createRouletteApp(cfg){
         });
         wrap.appendChild(delBtn);
 
-        queuePosterFetch(item, art, yearBadge);
+        // Solo volvemos a pedir el póster/año si NO lo tenemos ya
+        // guardado con éxito. La calificación se maneja igual, aparte.
+        const needsMeta = !posterCache[item];
+        if(needsMeta) queuePosterFetch(item, art, yearBadge);
         if(!cachedRating) queueRatingFetch(item, ratingBadge);
 
         card.addEventListener("click", () => {

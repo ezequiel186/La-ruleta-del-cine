@@ -1316,6 +1316,8 @@ function createRouletteApp(cfg){
         art.className = "poster-art";
         art.style.background = "linear-gradient(160deg, " + shadeFor(genreColors[genre], 0) + ", " + shadeFor(genreColors[genre], 1) + ")";
         art.innerHTML = genreIcons[genre] || "";
+        const cachedPosterUrl = posterCache[item];
+        if(cachedPosterUrl) applyPosterToCard(art, cachedPosterUrl);
 
         const title = document.createElement("div");
         title.className = "poster-title";
